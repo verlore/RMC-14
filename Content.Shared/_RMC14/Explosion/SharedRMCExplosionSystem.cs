@@ -21,6 +21,7 @@ using Robust.Shared.Map;
 using Robust.Shared.Network;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
+using System.Linq;
 
 namespace Content.Shared._RMC14.Explosion;
 
@@ -67,10 +68,29 @@ public abstract class SharedRMCExplosionSystem : EntitySystem
         DoEffect(ent);
     }
 
+    private void GibEntityByPlantingExplosive(Entity<RMCExplosiveDeleteComponent> ent, bool isGibbable)
+    {
+        if (isGibbable)
+        {
+            _body.GibBody(
+                _walls.FirstOrDefault(),
+                true,
+                splatModifier: _walls.FirstOrDefault().Comp.SplatModifier,
+                gibSoundOverride: _walls.FirstOrDefault().Comp.GibSoundOverride
+            );
+        }
+    }
+
     private void OnDeleteWallsTriggered(Entity<RMCExplosiveDeleteComponent> ent, ref CMExplosiveTriggeredEvent args)
     {
         _walls.Clear();
         _entityLookup.GetEntitiesInRange(ent.Owner.ToCoordinates(), ent.Comp.Range, _walls);
+
+        if (_walls.FirstOrDefault().Comp.Gibbable.HasValue)
+        {
+            GibEntityByPlantingExplosive(ent, _walls.FirstOrDefault().Comp.Gibbable.GetValueOrDefault());
+            return;
+        }
 
         foreach (var wall in _walls)
         {
